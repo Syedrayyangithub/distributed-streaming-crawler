@@ -1,54 +1,110 @@
-# Distributed Intelligent Web Crawler Framework
 
-An enterprise-grade, multi-threaded data ingestion engine built using **Spring Boot**, **Redis Cache**, and an asynchronous **Asynchronous Stream Pipeline** capable of high-throughput web scraping, global state management, and localized content text-mining metrics analytics.
+# Distributed AI RAG Search Engine
 
-## 🏗️ Architectural Layout
+A high-performance, multi-threaded web crawling pipeline and semantic search engine built from the ground up using **Spring Boot (Java 17)**, **MongoDB**, **Redis**, and **Docker**. This project implements a local **Retrieval-Augmented Generation (RAG)** pipeline, computing high-dimensional vector embeddings locally via **Ollama** to synthesize contextualized search summaries complete with automated source references.
 
-- **Concurrency Layer:** Leverages a thread-safe Java `ExecutorService` fixed-worker pool running concurrent runtime context execution tasks to maximize data fetch speeds.
-- **Idempotent State Store:** Integrated with an in-memory **Redis Cache Cluster** using set logic queries (`crawler:visited:urls`) to maintain global deduplication state and eliminate infinite link-traversal loops.
-- **Asynchronous Messaging Canal:** Implements a decoupled **Producer-Consumer Design Pattern** via Spring Event Multicasters, executing heavy processing tasks asynchronously on isolated worker contexts without blocking live web spider worker allocations.
-- **Data-Mining Processor:** Implements regex tokenizers, punctuation clean-up utilities, and localized English stop-word dictionaries using Java Streams maps to analyze word frequencies on incoming payloads in real-time.
-- **Observability Hub:** Instrumented with **Spring Boot Actuator** and **Micrometer Core** exposing Prometheus-ready REST endpoints (`/actuator/metrics`) tracking live JVM thread allocations and customized transaction counter velocities across the application workspace.
+---
+
+## 🚀 Key Architectural Features
+
+* **Multi-Threaded Concurrent Ingestion:** Leverages a configurable, concurrent thread pool executor within a decoupled event-driven architecture to recursively parse web domains without thread avalanches or race conditions.
+* **Distributed State Management:** Integrates a centralized **Redis** data layer to synchronize visited tracking states across crawl pipelines, eliminating redundant network overhead and preventing cyclic URL loops.
+* **Hybrid Semantic & Keyword Search:** Implements a dual-layer data storage strategy in **MongoDB**. Captures traditional inverted-index token tokenization alongside dense, 384-dimensional vector coordinate properties (`all-minilm`).
+* **Resilient Defensive Design:** Features an advanced multi-term regex search and title intersection fallback mechanism that ensures continuous RAG query fulfillment even when structural vector indexes are uninitialized.
+* **Containerized Microservices:** Fully containerized and orchestrated via **Docker** and **Docker Compose**, establishing an isolated virtual bridge network to cleanly route data between the app container, database, cache, and LLM inference engine layers.
 
 ---
 
 ## 🛠️ Technology Stack & Dependencies
 
-* **Core Platform:** Java (JDK 17+) & Spring Boot Web Core
-* **Distributed Storage:** Embedded Redis Cache Cluster Data Pool
-* **Data Scraper:** JSoup HTML Document Processing Parser Core
-* **Pipeline Infrastructure:** Spring Framework Async Task Executors
-* **Production Observability:** Spring Boot Actuator, Micrometer Core Meter Registries
+* **Backend Engine:** Spring Boot 3.3.x, Spring AI
+* **Web Scraping:** Jsoup (HTML Parser)
+* **Distributed Cache:** Redis (Lettuce Driver)
+* **NoSQL Database:** MongoDB (MongoTemplate & Aggregation Pipelines)
+* **AI & Embedding Models:** Ollama (`llama3.2:1b`, `all-minilm`)
+* **DevOps Infrastructure:** Docker, Docker Compose, Alpine Linux Base Images
 
 ---
 
-## ⚙️ Application Analytics Tracking
+## 📦 System Architecture
 
-The engine exposes real-time structural performance tracking telemetry directly over REST interfaces:
-
-- **Cluster Health Status:** `GET http://localhost:8081/actuator/health`
-- **Active JVM Container Threads:** `GET http://localhost:8081/actuator/metrics/jvm.threads.live`
-- **Custom Scrape Velocity Metrics:** `GET http://localhost:8081/actuator/metrics/crawler.pages.scraped`
+The ecosystem splits operational tasks into four independent, isolated service layers:
+1. **`spring_crawler_app`**: The core Java execution driver processing multi-threaded spider loops and hosting the Rest API gateway server on port `8081`.
+2. **`crawler_mongodb`**: Stores crawled text payloads, word frequency token arrays, and generated vector coordinates persistently.
+3. **`crawler_redis`**: Provides lightning-fast, atomic in-memory lookups to monitor and regulate visited URL states.
+4. **`crawler_ollama`**: Runs local containerized AI inference tasks for semantic coordinates calculation and natural language synthesis text responses.
 
 ---
 
-## 📊 Live Sample Analytical Execution Logs
+## ⚡ Getting Started & Deployment
+
+### Prerequisites
+* Ensure **Docker Desktop** is installed and running on your machine.
+* Ensure **Java 17** and **Maven** are set up locally (if compiling outside the container).
+
+### 1. Package the Application Artifact
+Compile the Spring Boot source files into a production-ready `.jar` deployment binary using your IDE or terminal:
+
+```bash
+mvn clean package -DskipTests
+```
+
+### 2. Launch the Microservice Cluster
+
+Spin up the entire coordinated container topology using Docker Compose:
+
+```bash
+docker compose up --build
+
+```
+
+### 3. Load the AI Model Weights
+
+Because the containers are running in an isolated network sandbox, execute the following commands in a separate terminal window to pull the required AI models directly into the active Ollama engine container:
+
+```bash
+# Pull the vector embedding coordinate calculator
+docker exec -it crawler_ollama ollama pull all-minilm
+
+# Pull the core conversational LLM
+docker exec -it crawler_ollama ollama pull llama3.2:1b
+
+```
+
+---
+
+## 🔍 API Testing & Verification
+
+Once the terminal logs confirm the services are up and connected, trigger a dynamic search query directly inside your web browser or via `curl`:
 
 ```text
-🍃 Internal In-Memory Redis Server started successfully on port 6379!
-🚀 Initializing Distributed Redis-Backed Streaming Engine...
-🧵 Thread [pool-3-thread-1] is fetching: [https://en.wikipedia.org/wiki/Main_Page](https://en.wikipedia.org/wiki/Main_Page)
-✅ Successfully scraped: Wikipedia, the free encyclopedia
+http://localhost:8081/api/search?q=why is it a good habit to wake up early in the morning
 
-📡 [Pipeline Consumer] Intercepted stream payload for: Wikipedia, the free encyclopedia
-📊 --- CONTENT ANALYSIS REPORT ---
-🔗 URL:          [https://en.wikipedia.org/wiki/Main_Page](https://en.wikipedia.org/wiki/Main_Page)
-🏷️ TITLE:        Wikipedia, the free encyclopedia
-🔤 TOTAL WORDS: 1502
-🔥 TOP KEYWORDS INDICES:
-   ▪️ wikipedia -> appeared 15 times
-   ▪️ page -> appeared 8 times
-   ▪️ wikimedia -> appeared 7 times
----------------------------------
+```
 
-🏁 Engine Finished! Total unique pages saved in Redis cache: 2
+### Expected Production Response Payload JSON
+
+```json
+{
+  "timestamp": "2026-06-30T00:50:12.450+00:00",
+  "query": "why is it a good habit to wake up early in the morning",
+  "ai_overview": "According to verified crawled documents, early rising optimizes human productivity and biological circadian cycles... [Truncated LLM Synthesis Text]",
+  "status": "SUCCESS",
+  "results_count": 3,
+  "source_references": [
+    {
+      "title": "Waking up early - Wikipedia",
+      "url": "[https://en.wikipedia.org/wiki/Early_rising](https://en.wikipedia.org/wiki/Early_rising)"
+    },
+    {
+      "title": "BBC News - Health and Wellbeing Portal",
+      "url": "[https://www.bbc.com/news](https://www.bbc.com/news)"
+    }
+  ]
+}
+
+```
+
+```
+
+```

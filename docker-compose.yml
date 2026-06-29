@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # 🍃 MongoDB Database Instance Container
+  mongodb:
+    image: mongo:latest
+    container_name: crawler_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # 🍒 Redis Cache Store Container
+  redis:
+    image: redis:alpine
+    container_name: crawler_redis
+    ports:
+      - "6379:6379"
+
+  # 🧠 Ollama Local LLM Inference Container Hub
+  ollama:
+    image: ollama/ollama:latest
+    container_name: crawler_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+
+  # 🚀 Your Core Spring Boot Engine Application Container
+  app:
+    build: .
+    container_name: spring_crawler_app
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+      - redis
+      - ollama
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/crawler_db
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
+
+volumes:
+  mongo_data:
+  ollama_storage:
