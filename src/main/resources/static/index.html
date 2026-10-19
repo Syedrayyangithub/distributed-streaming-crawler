@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crawlr</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>C</text></svg>">
+</head>
+<body>
+    <div id="home-view" class="home-view">
+        <header class="home-top">
+            <a href="/api/status" class="ghost-link" target="_blank" rel="noreferrer">Index status</a>
+        </header>
+        <main class="home-main">
+            <h1 class="logo" aria-label="Crawlr">
+                <span class="c-blue">C</span><span class="c-red">r</span><span class="c-yellow">a</span><span class="c-blue">w</span><span class="c-green">l</span><span class="c-red">r</span>
+            </h1>
+            <form id="home-form" class="search-form" autocomplete="off">
+                <div class="search-box">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#9aa0a6" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </span>
+                    <input id="home-q" name="q" type="search" autofocus placeholder="Search crawled pages or ask anything">
+                    <button type="submit" class="ai-chip-btn" title="Search with AI Mode">AI</button>
+                </div>
+                <div class="home-actions">
+                    <button type="submit" class="pill-btn">Crawlr Search</button>
+                    <button type="button" id="lucky-btn" class="pill-btn">I'm Feeling Curious</button>
+                </div>
+            </form>
+            <p class="home-sub">AI Mode synthesizes answers from your local crawl index.</p>
+        </main>
+        <footer class="site-footer">
+            <span id="home-index-status">Checking index…</span>
+            <span>Local RAG search · Ollama</span>
+        </footer>
+    </div>
+
+    <div id="results-view" class="results-view hidden">
+        <header class="results-header">
+            <a href="/" class="logo logo-small" aria-label="Crawlr home">
+                <span class="c-blue">C</span><span class="c-red">r</span><span class="c-yellow">a</span><span class="c-blue">w</span><span class="c-green">l</span><span class="c-red">r</span>
+            </a>
+            <form id="results-form" class="search-form results-form" autocomplete="off">
+                <div class="search-box">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#9aa0a6" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </span>
+                    <input id="results-q" name="q" type="search">
+                    <button type="submit" class="icon-submit" aria-label="Search">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285f4" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </button>
+                </div>
+            </form>
+        </header>
+
+        <nav class="tabs" aria-label="Result modes">
+            <button class="tab active" data-mode="all" type="button">All</button>
+            <button class="tab" data-mode="ai" type="button">AI Mode</button>
+        </nav>
+
+        <main class="results-main">
+            <p id="status-line" class="status-line"></p>
+
+            <section id="loading" class="loading hidden">
+                <div class="spinner" aria-hidden="true"></div>
+                <p>Finding on-topic sources…</p>
+            </section>
+
+            <section id="error-box" class="error-box hidden"></section>
+
+            <section id="ai-card" class="ai-card hidden">
+                <div class="ai-card-head">
+                    <span class="sparkle" aria-hidden="true">✦</span>
+                    <h2>AI Overview</h2>
+                    <span class="ai-badge">AI Mode</span>
+                </div>
+                <div id="ai-overview" class="ai-overview"></div>
+                <div id="ai-sources" class="ai-sources"></div>
+            </section>
+
+            <section id="web-results" class="web-results hidden">
+                <h2 class="sr-only">Web results</h2>
+                <div id="results-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

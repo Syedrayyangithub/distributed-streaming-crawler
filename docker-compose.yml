@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # 🍃 MongoDB Database Instance Container
   mongodb:
     image: mongo:latest
     container_name: crawler_mongodb
@@ -9,15 +6,24 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
-  # 🍒 Redis Cache Store Container
   redis:
     image: redis:alpine
     container_name: crawler_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
-  # 🧠 Ollama Local LLM Inference Container Hub
   ollama:
     image: ollama/ollama:latest
     container_name: crawler_ollama
@@ -25,17 +31,39 @@ services:
       - "11434:11434"
     volumes:
       - ollama_storage:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
 
-  # 🚀 Your Core Spring Boot Engine Application Container
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: crawler_ollama_init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      ollama pull all-minilm &&
+      ollama pull llama3.2:1b
+    restart: "no"
+
   app:
     build: .
     container_name: spring_crawler_app
     ports:
       - "8081:8081"
     depends_on:
-      - mongodb
-      - redis
-      - ollama
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/crawler_db
       - SPRING_DATA_REDIS_HOST=redis

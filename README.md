@@ -1,110 +1,176 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Crawlr-local%20RAG%20search-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Crawlr" />
+</p>
 
-# Distributed AI RAG Search Engine
+<h1 align="center">
+  <span style="color:#4285F4">C</span><span style="color:#EA4335">r</span><span style="color:#FBBC05">a</span><span style="color:#4285F4">w</span><span style="color:#34A853">l</span><span style="color:#EA4335">r</span>
+</h1>
 
-A high-performance, multi-threaded web crawling pipeline and semantic search engine built from the ground up using **Spring Boot (Java 17)**, **MongoDB**, **Redis**, and **Docker**. This project implements a local **Retrieval-Augmented Generation (RAG)** pipeline, computing high-dimensional vector embeddings locally via **Ollama** to synthesize contextualized search summaries complete with automated source references.
+<p align="center"><b>Crawl. Index. Ask. Cite.</b></p>
 
----
+<p align="center">
+  A Google-style search UI backed by a <b>Java 17 / Spring Boot</b> pipeline:<br/>
+  Jsoup crawler → Redis visited-set → Mongo pages + MiniLM vectors → local Ollama RAG.
+</p>
 
-## 🚀 Key Architectural Features
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/MongoDB-pages%20%2B%20vectors-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Redis-visited%20URLs-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/Ollama-llama3.2%3A1b-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+</p>
 
-* **Multi-Threaded Concurrent Ingestion:** Leverages a configurable, concurrent thread pool executor within a decoupled event-driven architecture to recursively parse web domains without thread avalanches or race conditions.
-* **Distributed State Management:** Integrates a centralized **Redis** data layer to synchronize visited tracking states across crawl pipelines, eliminating redundant network overhead and preventing cyclic URL loops.
-* **Hybrid Semantic & Keyword Search:** Implements a dual-layer data storage strategy in **MongoDB**. Captures traditional inverted-index token tokenization alongside dense, 384-dimensional vector coordinate properties (`all-minilm`).
-* **Resilient Defensive Design:** Features an advanced multi-term regex search and title intersection fallback mechanism that ensures continuous RAG query fulfillment even when structural vector indexes are uninitialized.
-* **Containerized Microservices:** Fully containerized and orchestrated via **Docker** and **Docker Compose**, establishing an isolated virtual bridge network to cleanly route data between the app container, database, cache, and LLM inference engine layers.
-
----
-
-## 🛠️ Technology Stack & Dependencies
-
-* **Backend Engine:** Spring Boot 3.3.x, Spring AI
-* **Web Scraping:** Jsoup (HTML Parser)
-* **Distributed Cache:** Redis (Lettuce Driver)
-* **NoSQL Database:** MongoDB (MongoTemplate & Aggregation Pipelines)
-* **AI & Embedding Models:** Ollama (`llama3.2:1b`, `all-minilm`)
-* **DevOps Infrastructure:** Docker, Docker Compose, Alpine Linux Base Images
-
----
-
-## 📦 System Architecture
-
-The ecosystem splits operational tasks into four independent, isolated service layers:
-1. **`spring_crawler_app`**: The core Java execution driver processing multi-threaded spider loops and hosting the Rest API gateway server on port `8081`.
-2. **`crawler_mongodb`**: Stores crawled text payloads, word frequency token arrays, and generated vector coordinates persistently.
-3. **`crawler_redis`**: Provides lightning-fast, atomic in-memory lookups to monitor and regulate visited URL states.
-4. **`crawler_ollama`**: Runs local containerized AI inference tasks for semantic coordinates calculation and natural language synthesis text responses.
+<p align="center">
+  <a href="http://localhost:8081/"><strong>Open the UI → http://localhost:8081/</strong></a>
+</p>
 
 ---
 
-## ⚡ Getting Started & Deployment
+## What you get
 
-### Prerequisites
-* Ensure **Docker Desktop** is installed and running on your machine.
-* Ensure **Java 17** and **Maven** are set up locally (if compiling outside the container).
+| Surface | What it does |
+| --- | --- |
+| **Home** | Google-like landing page, lucky search, index count |
+| **All** | Source links + snippets as soon as retrieval returns |
+| **AI Mode** | Streaming overview from crawled text only (SSE) |
+| **Live fetch** | If the local index has no *title-level* match, pull English Wikipedia for that topic |
 
-### 1. Package the Application Artifact
-Compile the Spring Boot source files into a production-ready `.jar` deployment binary using your IDE or terminal:
+> This is a **single-node demo**, not a Google-scale crawler. One JVM crawls and serves the API. Redis is a visited-URL set. Ranking is keyword overlap + in-memory cosine (not Atlas `$vectorSearch`).
 
-```bash
-mvn clean package -DskipTests
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  U[Browser UI] -->|GET /api/search| S[Spring Boot :8081]
+  U -->|SSE /api/overview| S
+  S -->|Jsoup + robots.txt| W[Web pages]
+  S -->|visited SET| R[(Redis)]
+  S -->|pages + embeddings| M[(MongoDB)]
+  S -->|MiniLM + llama3.2:1b| O[Ollama]
+  S -->|opensearch / extracts| Wiki[Wikipedia API]
 ```
 
-### 2. Launch the Microservice Cluster
+**Hot path (fast):** rank Mongo → JSON links.  
+**Slow path (background):** stream a 4-sentence overview from `llama3.2:1b`.
 
-Spin up the entire coordinated container topology using Docker Compose:
+---
+
+## Quick start
+
+### Prerequisites
+
+- Docker Desktop
+- Java 17 + Maven (or `./mvnw`) to build the jar
+
+### 1. Package
+
+```bash
+./mvnw clean package
+```
+
+Windows:
+
+```powershell
+.\mvnw.cmd clean package
+```
+
+### 2. Launch the stack
 
 ```bash
 docker compose up --build
-
 ```
 
-### 3. Load the AI Model Weights
+Compose waits for healthy Mongo + Redis, pulls `all-minilm` and `llama3.2:1b`, then starts the app. First boot can take several minutes while models download.
 
-Because the containers are running in an isolated network sandbox, execute the following commands in a separate terminal window to pull the required AI models directly into the active Ollama engine container:
+### 3. Search
+
+| URL | Purpose |
+| --- | --- |
+| http://localhost:8081/ | UI |
+| http://localhost:8081/api/status | Indexed count / Ollama models |
+| http://localhost:8081/api/search?q=animals | Links only |
+| http://localhost:8081/api/overview?q=animals | SSE tokens |
+| http://localhost:8081/api/crawl?maxPages=20 | Recrawl seeds |
+
+Wait until `/api/status` shows `indexed_documents` &gt; 0. A **new topic** may live-fetch Wikipedia on the first search; repeats hit Mongo.
+
+Manual model pull (only if you run Ollama yourself):
 
 ```bash
-# Pull the vector embedding coordinate calculator
 docker exec -it crawler_ollama ollama pull all-minilm
-
-# Pull the core conversational LLM
 docker exec -it crawler_ollama ollama pull llama3.2:1b
+```
 
+Stop:
+
+```bash
+docker compose down
 ```
 
 ---
 
-## 🔍 API Testing & Verification
+## Run from the IDE
 
-Once the terminal logs confirm the services are up and connected, trigger a dynamic search query directly inside your web browser or via `curl`:
+1. `docker compose up mongodb redis ollama ollama-init`
+2. Run `DistributedCrawlerApplication` (Java 17)
+3. Defaults: Mongo `localhost:27017/crawler_db`, Redis `localhost`, Ollama `http://localhost:11434`
+4. UI: http://localhost:8081/
 
-```text
-http://localhost:8081/api/search?q=why is it a good habit to wake up early in the morning
+---
 
-```
+## API
 
-### Expected Production Response Payload JSON
+`GET /api/search?q=...` — **no LLM wait**. `retrieval_ms` is in the payload.
 
 ```json
 {
-  "timestamp": "2026-06-30T00:50:12.450+00:00",
-  "query": "why is it a good habit to wake up early in the morning",
-  "ai_overview": "According to verified crawled documents, early rising optimizes human productivity and biological circadian cycles... [Truncated LLM Synthesis Text]",
+  "query": "tell me about animals",
   "status": "SUCCESS",
-  "results_count": 3,
+  "results_count": 4,
+  "retrieval_ms": 900,
   "source_references": [
     {
-      "title": "Waking up early - Wikipedia",
-      "url": "[https://en.wikipedia.org/wiki/Early_rising](https://en.wikipedia.org/wiki/Early_rising)"
-    },
-    {
-      "title": "BBC News - Health and Wellbeing Portal",
-      "url": "[https://www.bbc.com/news](https://www.bbc.com/news)"
+      "title": "Animal - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Animal",
+      "snippet": "Animals are multicellular eukaryotic organisms..."
     }
   ]
 }
-
 ```
 
+`GET /api/overview?q=...` — SSE: `event: token` with JSON `{"t":"..."}` (spaces preserved), then `event: done`.
+
+---
+
+## Tests
+
+```bash
+./mvnw test
 ```
 
-```
+- Distinctive terms / stop words
+- Noisy titles (`(song)`, disambiguation, books)
+- Off-topic ranking rejection
+- Title-must-match the topic
+- `robots.txt` Disallow prefixes
+- Ingest upsert-by-URL when embeddings fail
+
+---
+
+## Honest limits
+
+- One process, one crawl pool — not a worker fleet
+- No Kafka; cosine is in-app over a few hundred docs
+- Seed crawl is Wikipedia sleep/habit pages; other topics use Wikipedia fallback
+- `llama3.2:1b` on Docker CPU is small and slow — that is why overview **streams after** links
+
+## If this grew
+
+- Frontier queue + many crawler workers
+- Real vector index (pgvector / OpenSearch k-NN)
+- GPU Ollama on the host for faster generation
+- Better HTML boilerplate stripping
